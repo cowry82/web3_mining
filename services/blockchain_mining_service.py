@@ -10,7 +10,7 @@ from core.blockchain import BlockchainManager
 from core.contract import ContractManager
 from core.wallet import WalletManager
 from services.transaction_manager import TransactionManager, TransactionStatus
-from config.mining_config import NODE_CONFIG, DEFAULT_CHAIN, DEMO_MODE
+from config.mining_config import NODE_CONFIG, DEFAULT_CHAIN
 
 
 class BlockchainMiningService:
@@ -19,7 +19,6 @@ class BlockchainMiningService:
     def __init__(self, mining_start_date: datetime):
         # 初始化区块链挖矿服务
         self.mining_start_date = mining_start_date
-        self.demo_mode = DEMO_MODE
         self.blockchain_manager = BlockchainManager()
         self.contract_manager = ContractManager(self.blockchain_manager)
         self.wallet_manager = WalletManager()
@@ -29,10 +28,7 @@ class BlockchainMiningService:
         self.total_nodes = 0
         self.users: Dict[str, User] = {}
         
-        if self.demo_mode:
-            print("⚠️  演示模式已启用，使用模拟数据")
-        else:
-            print("✓ 生产模式已启用，使用真实链上数据")
+        print("✓ 生产模式已启用，使用真实链上数据")
     
     def switch_chain(self, chain_key: str) -> bool:
         # 切换到指定的区块链网络
@@ -67,10 +63,6 @@ class BlockchainMiningService:
         payment_amount: float
     ) -> Optional[str]:
         # 在区块链上购买节点
-        if self.demo_mode:
-            print(f"[演示模式] 模拟购买 {node_count} 个节点")
-            return "0x" + "0" * 64
-        
         try:
             # 获取智能合约和钱包实例
             contract = self.contract_manager.get_contract(self.current_chain)
@@ -113,10 +105,6 @@ class BlockchainMiningService:
     
     def claim_rewards_on_chain(self, uid: str) -> Optional[str]:
         # 在区块链上领取挖矿奖励
-        if self.demo_mode:
-            print(f"[演示模式] 模拟领取用户 {uid} 的奖励")
-            return "0x" + "1" * 64
-        
         try:
             # 获取智能合约和钱包实例
             contract = self.contract_manager.get_contract(self.current_chain)
@@ -142,20 +130,6 @@ class BlockchainMiningService:
     
     def get_user_nodes_from_chain(self, uid: str) -> List[Dict]:
         # 从区块链上获取用户的节点信息
-        if self.demo_mode:
-            print(f"[演示模式] 返回用户 {uid} 的模拟节点数据")
-            user = self.users.get(uid)
-            if user:
-                return [
-                    {
-                        'node_id': node.node_id,
-                        'hashrate': node.hashrate,
-                        'purchase_time': node.purchase_time.isoformat()
-                    }
-                    for node in user.nodes
-                ]
-            return []
-        
         try:
             # 获取智能合约和钱包实例
             contract = self.contract_manager.get_contract(self.current_chain)
@@ -168,10 +142,6 @@ class BlockchainMiningService:
     
     def get_user_rewards_from_chain(self, uid: str) -> float:
         # 从区块链上获取用户的待领取奖励
-        if self.demo_mode:
-            print(f"[演示模式] 返回用户 {uid} 的模拟奖励数据")
-            return 100.0
-        
         try:
             # 获取智能合约和钱包实例
             contract = self.contract_manager.get_contract(self.current_chain)
@@ -184,14 +154,6 @@ class BlockchainMiningService:
     
     def get_network_stats_from_chain(self) -> Dict[str, int]:
         # 从区块链上获取网络状态信息
-        if self.demo_mode:
-            print("[演示模式] 返回模拟网络状态数据")
-            return {
-                'total_nodes': self.total_nodes,
-                'total_hashrate': self.network_hashrate,
-                'daily_output': 92400
-            }
-        
         try:
             # 获取智能合约实例
             contract = self.contract_manager.get_contract(self.current_chain)
@@ -260,17 +222,6 @@ class BlockchainMiningService:
     
     def get_wallet_balance(self) -> float:
         # 获取钱包余额
-        if self.demo_mode:
-            print(f"[演示模式] 返回 {self.current_chain} 的模拟钱包余额")
-            # 为不同链返回不同的模拟余额
-            mock_balances = {
-                'ETH': 14134.9542,
-                'BSC': 99232.4853,
-                'POLYGON': 91665.9462,
-                'SOLANA': 50000.0
-            }
-            return mock_balances.get(self.current_chain, 0.0)
-        
         try:
             # 获取区块链连接和钱包实例
             connection = self.blockchain_manager.get_connection(self.current_chain)

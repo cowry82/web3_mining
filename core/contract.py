@@ -290,21 +290,40 @@ class ContractManager:
         self._initialize_contracts()
     
     def _initialize_contracts(self):
-        # 初始化所有配置的智能合约
-        for chain_key in self.blockchain_manager.get_supported_chains():
-            if chain_key == 'SOLANA':
+        # 只初始化默认链的合约，避免其他链连接失败的问题
+        from config.mining_config import DEFAULT_CHAIN
+        
+        try:
+            if DEFAULT_CHAIN == 'SOLANA':
                 # Solana使用SolanaMiningContract类
-                self.contracts[chain_key] = SolanaMiningContract(
-                    self.blockchain_manager, chain_key
+                self.contracts[DEFAULT_CHAIN] = SolanaMiningContract(
+                    self.blockchain_manager, DEFAULT_CHAIN
                 )
             else:
                 # 其他EVM兼容链使用EVMMiningContract类
-                self.contracts[chain_key] = EVMMiningContract(
-                    self.blockchain_manager, chain_key
+                self.contracts[DEFAULT_CHAIN] = EVMMiningContract(
+                    self.blockchain_manager, DEFAULT_CHAIN
                 )
+        except Exception as e:
+            print(f"警告: 默认链 {DEFAULT_CHAIN} 合约初始化失败: {e}")
     
     def get_contract(self, chain_key: str) -> MiningContract:
         # 获取指定区块链的智能合约实例
         if chain_key not in self.contracts:
-            raise ValueError(f"不支持的区块链: {chain_key}")
+            # 动态初始化该链的合约
+            try:
+                if chain_key == 'SOLANA':
+                    # Solana使用SolanaMiningContract类
+                    self.contracts[chain_key] = SolanaMiningContract(
+                        self.blockchain_manager, chain_key
+                    )
+                else:
+                    # 其他EVM兼容链使用EVMMiningContract类
+                    self.contracts[chain_key] = EVMMiningContract(
+                        self.blockchain_manager, chain_key
+                    )
+                print(f"✓ {chain_key} 合约已初始化")
+            except Exception as e:
+                print(f"✗ {chain_key} 合约初始化失败: {e}")
+                raise ValueError(f"不支持的区块链: {chain_key}")
         return self.contracts[chain_key]

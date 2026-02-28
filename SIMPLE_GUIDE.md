@@ -6,10 +6,7 @@
 
 ## 支持的区块链
 
-- **Ethereum (ETH)** - 以太坊主网
 - **Binance Smart Chain (BSC)** - 币安智能链
-- **Polygon** - Polygon网络
-- **Solana** - Solana网络
 
 ## 项目结构
 
@@ -35,133 +32,136 @@ wakuang/
 ├── utils/                         # 工具层
 │   ├── __init__.py
 │   └── time_utils.py              # 时间工具
-├── main.py                        # 基础挖矿演示
-├── blockchain_main.py             # 区块链挖矿演示
+├── buy_nodes_api.py               # 购买节点API
 ├── requirements.txt               # 依赖包
-├── requirements.md                # 需求文档
-└── README.md                      # 项目说明
-```
-
-## 安装依赖
-
-```bash
-pip install -r requirements.txt
+└── .env                           # 环境变量配置
 ```
 
 ## 配置说明
 
-### 1. 区块链配置
+### 1. 安装依赖
+
+```bash
+pip3 install --upgrade pip --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org
+pip3 install web3 eth-account python-dotenv
+```
+
+### 2. 配置环境变量
+
+编辑 `.env` 文件：
+
+```env
+# 钱包配置
+PRIVATE_KEY=your_private_key_here
+WALLET_ADDRESS=your_wallet_address_here
+
+# 智能合约地址
+BSC_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
+
+# 网络配置
+DEFAULT_CHAIN=BSC
+
+# 运行模式
+DEMO_MODE=false
+```
+
+### 3. 区块链配置
 
 编辑 `config/mining_config.py` 文件：
 
 ```python
 BLOCKCHAIN_CONFIG = {
-    'ETH': {
-        'CHAIN_ID': 1,
-        'NAME': 'Ethereum',
-        'SYMBOL': 'ETH',
+    'BSC': {
+        'CHAIN_ID': 56,
+        'NAME': 'Binance Smart Chain',
+        'SYMBOL': 'BNB',
         'RPC_URLS': [
-            'https://eth.llamarpc.com',
-            'https://rpc.ankr.com/eth'
+            'https://bsc-dataseed.binance.org',
+            'https://bsc-dataseed1.defibit.io',
+            'https://bsc-dataseed1.ninicoin.io'
         ],
-        'EXPLORER_URL': 'https://etherscan.io',
-        'CONTRACT_ADDRESS': '0x...',  # 您的智能合约地址
+        'EXPLORER_URL': 'https://bscscan.com',
+        'GAS_PRICE_GWEI': 5,
+        'CONTRACT_ADDRESS': os.getenv('BSC_CONTRACT_ADDRESS', '0x0000000000000000000000000000000000000'),
         'NATIVE_DECIMALS': 18
-    },
-    # ... 其他链配置
+    }
 }
 
-DEFAULT_CHAIN = 'BSC'  # 默认使用的区块链
+DEFAULT_CHAIN = os.getenv('DEFAULT_CHAIN', 'BSC')
 ```
 
-### 2. 钱包配置
+## API接口
 
-```python
-WALLET_CONFIG = {
-    'PRIVATE_KEY': 'YOUR_PRIVATE_KEY_HERE',  # 您的私钥
-    'ADDRESS': 'YOUR_WALLET_ADDRESS_HERE'    # 您的钱包地址
-}
+### 1. 购买节点接口
+
+**URL**: `POST /api/buy-nodes`
+
+**请求参数**:
+- `uid`: 用户ID
+- `node_count`: 节点数量
+- `payment_amount`: 支付金额（USDT）
+
+**返回结果**:
+- `success`: 是否成功
+- `tx_hash`: 交易哈希（如果成功）
+- `message`: 提示信息
+- `node_info`: 节点信息
+
+**示例请求**:
+```bash
+curl -X POST http://localhost:5001/api/buy-nodes \
+  -H 'Content-Type: application/json' \
+  -d '{"uid": "123456", "node_count": 1, "payment_amount": 500}'
 ```
 
-**安全提示**: 
-- 永远不要将私钥提交到代码仓库
-- 建议使用环境变量存储私钥
-- 仅在测试网络中使用真实私钥
+### 2. 获取节点详情接口
 
-## 运行程序
+**URL**: `GET /api/node-details/<uid>`
 
+**请求参数**:
+- `uid`: 用户ID（路径参数）
 
-### 区块链挖矿
+**返回结果**:
+- `success`: 是否成功
+- `node_details`: 节点详情列表
+
+**示例请求**:
+```bash
+curl http://localhost:5001/api/node-details/123456
+```
+
+**节点详情字段**:
+- `node_id`: 节点ID
+- `hashrate`: 算力
+- `xCPT_per_T`: xCPT/T
+- `today_output`: 今日产出cpt
+- `today_unlock`: 今日解锁代币CPT/T
+- `duration`: 时长
+- `unlocked_tokens`: 待解锁代币CPT
+- `total_output`: 累计产出CPT
+- `total_unlocked`: 累计解锁CPT
+
+## 使用方法
+
+### 1. 启动API服务
 
 ```bash
-python3 blockchain_main.py
+python3 buy_nodes_api.py
 ```
 
-## 核心功能
+服务运行在: http://localhost:5001
 
-### 1. 多链支持
+### 2. 购买节点
 
-系统支持在ETH、BSC、Polygon、Solana之间切换：
+使用上述API接口购买节点，系统会在BSC链上执行交易。
 
-```python
-from services.blockchain_mining_service import BlockchainMiningService
+### 3. 查询节点详情
 
-mining_service = BlockchainMiningService(mining_start_date)
-
-# 切换到以太坊
-mining_service.switch_chain('ETH')
-
-# 切换到BSC
-mining_service.switch_chain('BSC')
-
-# 切换到Polygon
-mining_service.switch_chain('POLYGON')
-```
-
-### 2. 链上购买节点
-
-```python
-# 在链上购买节点
-tx_hash = mining_service.buy_nodes_on_chain(
-    uid="user_001",
-    node_count=2,
-    payment_amount=0.1  # 支付金额
-)
-```
-
-### 3. 链上领取奖励
-
-```python
-# 领取挖矿奖励
-tx_hash = mining_service.claim_rewards_on_chain("user_001")
-```
-
-### 4. 查询链上数据
-
-```python
-# 获取用户节点
-nodes = mining_service.get_user_nodes_from_chain("user_001")
-
-# 获取用户奖励
-rewards = mining_service.get_user_rewards_from_chain("user_001")
-
-# 获取网络状态
-stats = mining_service.get_network_stats_from_chain()
-```
-
-### 5. 交易管理
-
-```python
-# 获取交易历史
-transactions = mining_service.get_transaction_history(limit=100)
-
-# 获取交易统计
-stats = mining_service.get_transaction_statistics()
-```
+使用节点详情接口查询用户的节点信息，包括算力、产出等数据。
 
 ## 智能合约部署
 
-### EVM链智能合约 (Solidity)
+### BSC智能合约 (Solidity)
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -230,10 +230,6 @@ contract BitUPMining {
 }
 ```
 
-### Solana智能合约 (Rust)
-
-需要使用Solana Program Library (SPL) 开发。
-
 ## 核心计算公式
 
 ### 1. 头矿期产出
@@ -259,41 +255,6 @@ contract BitUPMining {
 减产次数 = 经过的天数 / 1460天
 ```
 
-## 使用示例
-
-### 完整挖矿流程
-
-```python
-from datetime import datetime
-from services.blockchain_mining_service import BlockchainMiningService
-from models.models import User, Node
-
-# 初始化服务
-mining_service = BlockchainMiningService(datetime(2024, 1, 1))
-
-# 创建用户
-user = User(uid="user_001", nodes=[])
-
-# 注册用户
-mining_service.register_user(user)
-
-# 购买节点（链上）
-tx_hash = mining_service.buy_nodes_on_chain(
-    uid="user_001",
-    node_count=5,
-    payment_amount=0.5
-)
-
-# 计算每日收益
-records = mining_service.distribute_daily_rewards(datetime.now())
-
-# 领取奖励（链上）
-claim_tx = mining_service.claim_rewards_on_chain("user_001")
-
-# 查看交易历史
-transactions = mining_service.get_transaction_history()
-```
-
 ## 注意事项
 
 1. **安全性**
@@ -302,53 +263,31 @@ transactions = mining_service.get_transaction_history()
    - 使用硬件钱包存储大额资产
 
 2. **Gas费用**
-   - 不同链的Gas费用不同
-   - BSC和Polygon的Gas费用较低
+   - BSC的Gas费用较低
    - 确保钱包有足够的Gas费用
 
 3. **网络延迟**
    - 区块链交易需要确认时间
-   - 不同链的确认时间不同
-   - Solana的确认速度最快
+   - BSC的确认时间约为3-5秒
 
 4. **合约部署**
-   - 需要先部署智能合约到目标链
+   - 需要先部署智能合约到BSC
    - 更新配置文件中的合约地址
    - 测试合约功能是否正常
-
-## 扩展开发
-
-### 添加新的区块链
-
-1. 在 `config/mining_config.py` 中添加新链配置
-2. 在 `core/blockchain.py` 中实现连接类
-3. 在 `core/contract.py` 中实现合约接口
-4. 在 `core/wallet.py` 中实现钱包类
-
-### 添加新的计算公式
-
-在 `core/calculator.py` 中添加新的计算方法。
-
-### 添加新的业务逻辑
-
-在 `services/` 目录下创建新的服务类。
 
 ## 故障排除
 
 ### 连接失败
-
 - 检查RPC URL是否正确
 - 检查网络连接
 - 尝试使用备用RPC节点
 
 ### 交易失败
-
 - 检查Gas费用是否足够
 - 检查合约地址是否正确
 - 检查钱包余额是否充足
 
 ### 依赖安装失败
-
 ```bash
 # 升级pip
 pip install --upgrade pip
@@ -364,7 +303,3 @@ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 2. 依赖包是否完整安装
 3. 网络连接是否正常
 4. 钱包余额是否充足
-
-## 许可证
-
-本项目仅供学习和研究使用。

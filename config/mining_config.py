@@ -93,20 +93,6 @@ BENEFITS_CONFIG = {
 
 # 区块链网络配置
 BLOCKCHAIN_CONFIG = {
-    'ETH': {
-        'CHAIN_ID': 1,
-        'NAME': 'Ethereum',
-        'SYMBOL': 'ETH',
-        'RPC_URLS': [
-            'https://eth.llamarpc.com',
-            'https://rpc.ankr.com/eth',
-            f'https://eth-mainnet.g.alchemy.com/v2/{os.getenv("ALCHEMY_API_KEY", "")}'
-        ],
-        'EXPLORER_URL': 'https://etherscan.io',
-        'GAS_PRICE_GWEI': 20,
-        'CONTRACT_ADDRESS': os.getenv('ETH_CONTRACT_ADDRESS', '0x0000000000000000000000000000000000000'),
-        'NATIVE_DECIMALS': 18
-    },
     'BSC': {
         'CHAIN_ID': 56,
         'NAME': 'Binance Smart Chain',
@@ -135,33 +121,6 @@ BLOCKCHAIN_CONFIG = {
         'GAS_PRICE_GWEI': 5,
         'CONTRACT_ADDRESS': os.getenv('BSC_TESTNET_CONTRACT_ADDRESS', '0x0000000000000000000000000000000000000'),
         'NATIVE_DECIMALS': 18
-    },
-    'POLYGON': {
-        'CHAIN_ID': 137,
-        'NAME': 'Polygon',
-        'SYMBOL': 'MATIC',
-        'RPC_URLS': [
-            'https://polygon-rpc.com',
-            'https://rpc.ankr.com/polygon',
-            f'https://polygon-mainnet.g.alchemy.com/v2/{os.getenv("ALCHEMY_API_KEY", "")}'
-        ],
-        'EXPLORER_URL': 'https://polygonscan.com',
-        'GAS_PRICE_GWEI': 30,
-        'CONTRACT_ADDRESS': os.getenv('POLYGON_CONTRACT_ADDRESS', '0x0000000000000000000000000000000000000000'),
-        'NATIVE_DECIMALS': 18
-    },
-    'SOLANA': {
-        'CHAIN_ID': 'solana',
-        'NAME': 'Solana',
-        'SYMBOL': 'SOL',
-        'RPC_URLS': [
-            'https://api.mainnet-beta.solana.com',
-            'https://solana-api.projectserum.com',
-            'https://rpc.ankr.com/solana'
-        ],
-        'EXPLORER_URL': 'https://explorer.solana.com',
-        'CONTRACT_ADDRESS': os.getenv('SOLANA_CONTRACT_ADDRESS', '11111111111111111111111111111111'),
-        'NATIVE_DECIMALS': 9
     }
 }
 
