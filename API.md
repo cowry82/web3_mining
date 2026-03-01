@@ -350,6 +350,113 @@ curl http://localhost:5001/api/unlock-records/test_user
 
 ---
 
+### 6. 获取24小时倒计时
+
+**接口地址**: `GET /api/countdown/<uid>`
+
+**功能描述**: 获取用户的24小时倒计时信息，用于领取每日奖励
+
+**请求参数**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| uid | string | 是 | 用户ID（URL路径参数） |
+
+**请求示例**:
+```bash
+curl http://localhost:5001/api/countdown/alice
+```
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "uid": "alice",
+  "countdown": {
+    "total_seconds": 86350,
+    "hours": 23,
+    "minutes": 59,
+    "seconds": 10,
+    "formatted": "23:59:10"
+  },
+  "next_claim_time": "2026-03-01T20:49:39.984193",
+  "last_claim_time": null,
+  "can_claim": false,
+  "daily_reward": 4.545,
+  "node_count": 2
+}
+```
+
+**字段说明**:
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| countdown.total_seconds | integer | 剩余总秒数 |
+| countdown.hours | integer | 剩余小时数 |
+| countdown.minutes | integer | 剩余分钟数 |
+| countdown.seconds | integer | 剩余秒数 |
+| countdown.formatted | string | 格式化的时间字符串 (HH:MM:SS) |
+| next_claim_time | string | 下次可领取时间 |
+| last_claim_time | string | 上次领取时间 |
+| can_claim | boolean | 是否可以领取 |
+| daily_reward | number | 今日可领取奖励（CPT） |
+| node_count | integer | 节点数量 |
+
+---
+
+### 7. 领取每日奖励
+
+**接口地址**: `POST /api/claim-reward`
+
+**功能描述**: 领取每日挖矿奖励
+
+**请求参数**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| uid | string | 是 | 用户ID |
+
+**请求示例**:
+```bash
+curl -X POST http://localhost:5001/api/claim-reward \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "uid": "alice"
+  }'
+```
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "message": "成功领取 4.5450 CPT",
+  "claimed_amount": 4.545,
+  "tx_hash": "0x1234567890abcdef...",
+  "claim_time": "2026-02-28T20:50:00.123456",
+  "next_claim_time": "2026-03-01T20:50:00.123456"
+}
+```
+
+**错误响应**:
+```json
+{
+  "success": false,
+  "message": "还需等待 23:59:10 才能领取",
+  "next_claim_time": "2026-03-01T20:49:39.984193"
+}
+```
+
+**字段说明**:
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| claimed_amount | number | 领取金额（CPT） |
+| tx_hash | string | 交易哈希 |
+| claim_time | string | 领取时间 |
+| next_claim_time | string | 下次可领取时间 |
+
+---
+
 ## 更新日志
 
 - **2026-02-28**: 初始版本，包含5个基础接口
@@ -358,3 +465,7 @@ curl http://localhost:5001/api/unlock-records/test_user
   - 获取购买记录
   - 获取节点价格
   - 获取解锁记录
+
+- **2026-02-28**: 新增2个接口
+  - 获取24小时倒计时
+  - 领取每日奖励
