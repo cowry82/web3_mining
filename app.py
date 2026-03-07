@@ -49,11 +49,11 @@ def purchase_node():
         conn = get_db()
         cursor = conn.cursor()
         
-        # 检查用户是否存在，不存在则创建
-        cursor.execute('SELECT user_id FROM users WHERE user_id = ?', (user_id,))
-        
         # 检查是否是MySQL连接
         is_mysql = hasattr(conn, 'is_connected')
+        
+        # 检查用户是否存在，不存在则创建
+        cursor.execute('SELECT user_id FROM users WHERE user_id = ?', (user_id,))
         
         if is_mysql:
             existing_user = cursor.fetchone()
@@ -137,7 +137,44 @@ def purchase_node():
                 (level1_reward, referrer_id)
             )
             # 更新算力
-            mining_service.update_user_power(referrer_id, node_config['referral_level1']['power'])
+            # 直接在当前连接中更新算力，避免创建新连接
+            now = int(datetime.now().timestamp())
+            # 检查是否已有power币种记录
+            cursor.execute('''
+                SELECT cu.id, cu.num 
+                FROM fa_app_currency_user cu
+                JOIN fa_app_currency c ON cu.curr_id = c.id
+                WHERE cu.user_id = ? AND c.name = 'power'
+            ''', (referrer_id,))
+            
+            if is_mysql:
+                result = cursor.fetchone()
+            else:
+                result = cursor.fetchone()
+            
+            if result:
+                # 更新现有记录
+                cursor.execute('''
+                    UPDATE fa_app_currency_user 
+                    SET num = num + ?, updatetime = ?
+                    WHERE id = ?
+                ''', (node_config['referral_level1']['power'], now, result[0]))
+            else:
+                # 获取power币种的id
+                cursor.execute('SELECT id FROM fa_app_currency WHERE name = ?', ('power',))
+                
+                if is_mysql:
+                    currency = cursor.fetchone()
+                else:
+                    currency = cursor.fetchone()
+                
+                if currency:
+                    # 创建新记录
+                    cursor.execute('''
+                        INSERT INTO fa_app_currency_user 
+                        (user_id, curr_id, num, updatetime, regtime)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (referrer_id, currency[0], node_config['referral_level1']['power'], now, now))
             
             # 二级邀请奖励
             if level2_referrer_id:
@@ -147,13 +184,112 @@ def purchase_node():
                     (level2_reward, level2_referrer_id)
                 )
                 # 更新算力
-                mining_service.update_user_power(level2_referrer_id, node_config['referral_level2']['power'])
+                # 直接在当前连接中更新算力，避免创建新连接
+                # 检查是否已有power币种记录
+                cursor.execute('''
+                    SELECT cu.id, cu.num 
+                    FROM fa_app_currency_user cu
+                    JOIN fa_app_currency c ON cu.curr_id = c.id
+                    WHERE cu.user_id = ? AND c.name = 'power'
+                ''', (level2_referrer_id,))
+                
+                if is_mysql:
+                    result = cursor.fetchone()
+                else:
+                    result = cursor.fetchone()
+                
+                if result:
+                    # 更新现有记录
+                    cursor.execute('''
+                        UPDATE fa_app_currency_user 
+                        SET num = num + ?, updatetime = ?
+                        WHERE id = ?
+                    ''', (node_config['referral_level2']['power'], now, result[0]))
+                else:
+                    # 获取power币种的id
+                    cursor.execute('SELECT id FROM fa_app_currency WHERE name = ?', ('power',))
+                    
+                    if is_mysql:
+                        currency = cursor.fetchone()
+                    else:
+                        currency = cursor.fetchone()
+                    
+                    if currency:
+                        # 创建新记录
+                        cursor.execute('''
+                            INSERT INTO fa_app_currency_user 
+                            (user_id, curr_id, num, updatetime, regtime)
+                            VALUES (?, ?, ?, ?, ?)
+                        ''', (level2_referrer_id, currency[0], node_config['referral_level2']['power'], now, now))
         
         # 更新用户算力
-        mining_service.update_user_power(user_id, node_config['referral_level1']['power'])
+        # 直接在当前连接中更新算力，避免创建新连接
+        now = int(datetime.now().timestamp())
+        # 检查是否已有power币种记录
+        cursor.execute('''
+            SELECT cu.id, cu.num 
+            FROM fa_app_currency_user cu
+            JOIN fa_app_currency c ON cu.curr_id = c.id
+            WHERE cu.user_id = ? AND c.name = 'power'
+        ''', (user_id,))
+        
+        if is_mysql:
+            result = cursor.fetchone()
+        else:
+            result = cursor.fetchone()
+        
+        if result:
+            # 更新现有记录
+            cursor.execute('''
+                UPDATE fa_app_currency_user 
+                SET num = num + ?, updatetime = ?
+                WHERE id = ?
+            ''', (node_config['referral_level1']['power'], now, result[0]))
+        else:
+            # 获取power币种的id
+            cursor.execute('SELECT id FROM fa_app_currency WHERE name = ?', ('power',))
+            
+            if is_mysql:
+                currency = cursor.fetchone()
+            else:
+                currency = cursor.fetchone()
+            
+            if currency:
+                # 创建新记录
+                cursor.execute('''
+                    INSERT INTO fa_app_currency_user 
+                    (user_id, curr_id, num, updatetime, regtime)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (user_id, currency[0], node_config['referral_level1']['power'], now, now))
         
         # 更新全网算力
-        mining_service.update_network_power()
+        # 直接在当前连接中更新全网算力，避免创建新连接
+        cursor.execute('''
+            SELECT SUM(cu.num) 
+            FROM fa_app_currency_user cu
+            JOIN fa_app_currency c ON cu.curr_id = c.id
+            WHERE c.name = 'power'
+        ''')
+        
+        if is_mysql:
+            total_power = cursor.fetchone()[0] or 0
+        else:
+            total_power = cursor.fetchone()[0] or 0
+        
+        # 更新全网算力，根据数据库类型使用不同的语法
+        if is_mysql:
+            # MySQL使用ON DUPLICATE KEY UPDATE
+            cursor.execute('''
+                INSERT INTO network_power (total_power, update_time)
+                VALUES (?, ?)
+                ON DUPLICATE KEY UPDATE total_power = ?, update_time = ?
+            ''', (total_power, datetime.now(), total_power, datetime.now()))
+        else:
+            # SQLite使用UPSERT语法
+            cursor.execute('''
+                INSERT OR REPLACE INTO network_power (id, total_power, update_time)
+                VALUES (1, ?, ?)
+            ''', (total_power, datetime.now()))
         
         conn.commit()
         conn.close()
@@ -335,7 +471,28 @@ def get_mining_records():
 def get_user_power():
     try:
         user_id = request.user_id
-        power = mining_service.get_user_power(user_id)
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # 检查是否是MySQL连接
+        is_mysql = hasattr(conn, 'is_connected')
+        
+        # 查询power币种的num字段
+        cursor.execute('''
+            SELECT cu.num 
+            FROM fa_app_currency_user cu
+            JOIN fa_app_currency c ON cu.curr_id = c.id
+            WHERE cu.user_id = ? AND c.name = 'power'
+        ''', (user_id,))
+        
+        if is_mysql:
+            result = cursor.fetchone()
+        else:
+            result = cursor.fetchone()
+        
+        power = result[0] if result else 0
+        conn.close()
+        
         return jsonify({'success': True, 'user_id': user_id, 'power': power})
     except Exception as e:
         print(f'Get user power error: {e}')
